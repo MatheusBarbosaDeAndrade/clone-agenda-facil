@@ -1,7 +1,10 @@
 services:
   database:
-    image: postgres:19rc1-alpine3.24
-    env_file:
-      - ../.env.development
+    image: postgres:16-alpine
+    container_name: agendafacil-database-1
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-agenda_facil_development}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
