@@ -10,7 +10,9 @@ function getTransporter() {
       host: process.env.SMTP_HOST,
       port,
       secure: port === 465,
-      requireTLS: port !== 465,
+      // Em produção a conexão SMTP deve ser criptografada (STARTTLS); o Mailpit
+      // local de desenvolvimento não usa TLS (SMTP_REQUIRE_TLS=false).
+      requireTLS: port !== 465 && process.env.SMTP_REQUIRE_TLS !== "false",
       auth: process.env.SMTP_USER
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
         : undefined,

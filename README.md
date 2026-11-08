@@ -34,7 +34,7 @@ npm run dev:seed
 
 Contas criadas (senha `senha1234`): cliente `joao@agendafacil.dev`; prestadores `maria@agendafacil.dev` e `ana@agendafacil.dev`.
 
-Sem SMTP configurado, os e-mails de recuperação de senha aparecem no terminal do `npm run dev`.
+**E-mails em desenvolvimento:** nenhum e-mail sai para a internet. Todos (confirmação de cadastro, recuperação de senha) chegam na caixa local do **Mailpit**, em <http://localhost:8025>, que sobe junto com o `npm run dev`. Por isso serviços como tempmail não recebem nada localmente. Para enviar e-mails reais, configure um SMTP de verdade no `.env.local` (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_REQUIRE_TLS=true`).
 
 ### Scripts
 

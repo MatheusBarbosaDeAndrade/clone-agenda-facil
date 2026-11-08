@@ -5,3 +5,11 @@ services:
       - ../.env.development
     ports:
       - "5433:5432"
+
+  # Caixa de e-mail local: captura todos os e-mails enviados em desenvolvimento.
+  # Veja em http://localhost:8025 (nenhum e-mail sai para a internet).
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "1025:1025"
+      - "8025:8025"

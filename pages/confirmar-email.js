@@ -7,7 +7,7 @@ import { homePathFor } from "infra/page-auth.js";
 import session from "models/session.js";
 import user from "models/user.js";
 
-export default function ConfirmarEmail({ email: initialEmail }) {
+export default function ConfirmarEmail({ email: initialEmail, devMailbox }) {
   const [email, setEmail] = useState(initialEmail);
   const [editing, setEditing] = useState(false);
   const [newEmail, setNewEmail] = useState(initialEmail);
@@ -59,6 +59,20 @@ export default function ConfirmarEmail({ email: initialEmail }) {
         e-mail e clique em “Confirmar e-mail” para ativar sua conta. Verifique
         também a caixa de spam.
       </p>
+
+      {devMailbox && (
+        <div className="alert alert-info" role="note">
+          <span>
+            <strong>Ambiente de desenvolvimento</strong>
+            Os e-mails não saem para a internet. Veja o link de confirmação na
+            caixa local em{" "}
+            <a href={devMailbox} target="_blank" rel="noopener noreferrer">
+              {devMailbox}
+            </a>{" "}
+            (ou no terminal do <code>npm run dev</code>).
+          </span>
+        </div>
+      )}
 
       {message && (
         <div className="alert alert-success" role="status">
@@ -140,5 +154,10 @@ export async function getServerSideProps(ctx) {
     return {
       redirect: { destination: homePathFor(found.papel), permanent: false },
     };
-  return { props: { email: found.email } };
+  const devMailbox =
+    process.env.NODE_ENV !== "production" &&
+    process.env.SMTP_HOST === "localhost"
+      ? "http://localhost:8025"
+      : null;
+  return { props: { email: found.email, devMailbox } };
 }
