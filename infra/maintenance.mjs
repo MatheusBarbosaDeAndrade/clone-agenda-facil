@@ -8,6 +8,14 @@ export const RETENTION_SQL = [
     "DELETE FROM tokens_recuperacao WHERE expira_em < now() - interval '1 day'",
   ],
   [
+    "contas com e-mail não confirmado (> 7 dias)",
+    "DELETE FROM usuarios WHERE email_verificado_em IS NULL AND criado_em < now() - interval '7 days'",
+  ],
+  [
+    "links de confirmação de e-mail",
+    "DELETE FROM tokens_verificacao_email WHERE expira_em < now()",
+  ],
+  [
     "cadastros pendentes",
     "DELETE FROM cadastros_pendentes WHERE expira_em < now()",
   ],

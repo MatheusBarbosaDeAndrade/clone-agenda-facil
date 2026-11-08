@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import {
+  EmailNotVerifiedError,
   ForbiddenError,
   InternalServerError,
   MethodNotAllowedError,
@@ -86,12 +87,22 @@ export function createHandler(handlers) {
   };
 }
 
-/** Exige sessão válida; opcionalmente restringe por papel. */
-export async function requireUser(req, papel) {
+/**
+ * Exige sessão válida e e-mail confirmado; opcionalmente restringe por papel.
+ * allowUnverified libera rotas que o titular precisa mesmo sem confirmar o
+ * e-mail (ver/excluir/exportar a própria conta, reenviar confirmação).
+ */
+export async function requireUser(
+  req,
+  papel,
+  { allowUnverified = false } = {},
+) {
   const current = await session.findValid(req);
   if (!current) throw new UnauthorizedError();
   const found = await user.findById(current.usuarioId);
   if (!found) throw new UnauthorizedError();
+  if (!found.emailVerificado && !allowUnverified)
+    throw new EmailNotVerifiedError();
   if (papel && found.papel !== papel) throw new ForbiddenError();
   user.touchLastAccess(found.id).catch(() => {});
   return { user: found, sessaoId: current.sessaoId };

@@ -5,7 +5,9 @@ import privacy from "models/privacy.js";
 
 /** LGPD art. 18, II e V — acesso e portabilidade dos dados. */
 async function exportData(req, res) {
-  const { user: me } = await requireUser(req);
+  const { user: me } = await requireUser(req, null, {
+    allowUnverified: true,
+  });
   await rateLimit({
     key: `export:${me.id}`,
     limit: 10,

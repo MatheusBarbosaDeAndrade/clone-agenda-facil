@@ -127,3 +127,22 @@ describe("Privacidade e LGPD", () => {
     expect((await request(`/api/v1/avatars/${user.id}`)).status).toBe(401);
   });
 });
+
+test("rotina de retenção remove contas nunca confirmadas após 7 dias", async () => {
+  const stale = await createUser({ verified: false });
+  const fresh = await createUser({ verified: false });
+  await query(
+    "UPDATE usuarios SET criado_em = now() - interval '8 days' WHERE id = $1",
+    [stale.id],
+  );
+  const { runMaintenance } = await import("infra/maintenance.mjs");
+  await runMaintenance((sql) =>
+    query(sql).then((rows) => ({ rowCount: rows.length })),
+  );
+  expect(
+    await query("SELECT 1 FROM usuarios WHERE id = $1", [stale.id]),
+  ).toHaveLength(0);
+  expect(
+    await query("SELECT 1 FROM usuarios WHERE id = $1", [fresh.id]),
+  ).toHaveLength(1);
+});

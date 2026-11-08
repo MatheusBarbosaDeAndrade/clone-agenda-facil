@@ -7,6 +7,7 @@ import { normalizePhone } from "lib/validation.js";
 const USER_COLUMNS = `
   u.id, u.papel, u.nome, u.email, u.telefone_cifrado, u.senha_hash IS NOT NULL AS tem_senha,
   u.google_sub IS NOT NULL AS tem_google, u.criado_em, u.ultimo_acesso_em,
+  u.email_verificado_em IS NOT NULL AS email_verificado,
   av.atualizado_em AS avatar_atualizado_em,
   p.especialidade, p.bio, p.local, p.duracao_minutos`;
 
@@ -30,6 +31,7 @@ function toPublic(row) {
     telefone: row.telefone_cifrado ? decrypt(row.telefone_cifrado) : "",
     temSenha: row.tem_senha,
     temGoogle: row.tem_google,
+    emailVerificado: row.email_verificado,
     avatarUrl: avatarUrl(row.id, row.avatar_atualizado_em),
     criadoEm: new Date(row.criado_em).toISOString(),
   };
@@ -74,8 +76,8 @@ async function create(data) {
   try {
     return await database.transaction(async (tx) => {
       const inserted = await tx.query(
-        `INSERT INTO usuarios (papel, nome, email, telefone_cifrado, telefone_indice, senha_hash, google_sub)
-         VALUES ($1, $2, lower($3), $4, $5, $6, $7) RETURNING id`,
+        `INSERT INTO usuarios (papel, nome, email, telefone_cifrado, telefone_indice, senha_hash, google_sub, email_verificado_em)
+         VALUES ($1, $2, lower($3), $4, $5, $6, $7, CASE WHEN $8::boolean THEN now() END) RETURNING id`,
         [
           data.papel,
           data.nome,
@@ -84,6 +86,8 @@ async function create(data) {
           blindIndex(`phone:${phone}`),
           senhaHash,
           data.googleSub || null,
+          // Contas criadas pelo Google já têm o e-mail verificado por ele.
+          Boolean(data.googleSub),
         ],
       );
       const id = inserted.rows[0].id;
@@ -180,7 +184,8 @@ async function updateProfile(id, { nome, telefone, email }) {
   try {
     await database.query(
       `UPDATE usuarios
-         SET nome = $2, email = lower($3), telefone_cifrado = $4, telefone_indice = $5, atualizado_em = now()
+         SET nome = $2, email = lower($3), telefone_cifrado = $4, telefone_indice = $5, atualizado_em = now(),
+             email_verificado_em = CASE WHEN lower(email) = lower($3) THEN email_verificado_em ELSE NULL END
        WHERE id = $1`,
       [id, nome, email, encrypt(phone), blindIndex(`phone:${phone}`)],
     );
@@ -226,7 +231,55 @@ async function getAvatar(id) {
   return result.rows[0] || null;
 }
 
+/** Busca para vínculo com Google: inclui o estado de verificação do e-mail. */
+async function findForGoogleLink(email) {
+  const result = await database.query(
+    "SELECT id, papel, email_verificado_em IS NOT NULL AS verificado FROM usuarios WHERE lower(email) = lower($1)",
+    [email],
+  );
+  return result.rows[0] || null;
+}
+
+/**
+ * O dono real do e-mail (comprovado pelo Google) assume uma conta cujo e-mail
+ * nunca foi confirmado: a senha definida por quem a criou é descartada.
+ * Mitiga o "sequestro prévio de conta" (pre-account hijacking).
+ */
+async function reclaimUnverified(id, googleSub) {
+  try {
+    await database.query(
+      `UPDATE usuarios SET senha_hash = NULL, google_sub = $2, email_verificado_em = now(), atualizado_em = now()
+       WHERE id = $1`,
+      [id, googleSub],
+    );
+  } catch (error) {
+    throw translateUniqueViolation(error);
+  }
+}
+
+async function markEmailVerified(id) {
+  await database.query(
+    "UPDATE usuarios SET email_verificado_em = COALESCE(email_verificado_em, now()), atualizado_em = now() WHERE id = $1",
+    [id],
+  );
+}
+
+async function changeUnverifiedEmail(id, email) {
+  try {
+    await database.query(
+      "UPDATE usuarios SET email = lower($2), atualizado_em = now() WHERE id = $1 AND email_verificado_em IS NULL",
+      [id, email],
+    );
+  } catch (error) {
+    throw translateUniqueViolation(error);
+  }
+}
+
 const user = {
+  findForGoogleLink,
+  reclaimUnverified,
+  markEmailVerified,
+  changeUnverifiedEmail,
   create,
   findById,
   findByIdOrThrow,

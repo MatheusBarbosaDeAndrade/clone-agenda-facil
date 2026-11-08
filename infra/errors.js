@@ -52,6 +52,17 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class EmailNotVerifiedError extends AppError {
+  constructor() {
+    super({
+      name: "EmailNotVerifiedError",
+      message: "Confirme seu e-mail para continuar.",
+      action: "Clique no link que enviamos para o seu e-mail.",
+      statusCode: 403,
+    });
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor({ message, action } = {}) {
     super({

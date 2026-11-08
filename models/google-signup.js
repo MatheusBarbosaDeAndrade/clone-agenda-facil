@@ -1,4 +1,8 @@
 import database from "infra/database.js";
+import { audit } from "infra/audit.js";
+import user from "models/user.js";
+import session from "models/session.js";
+import emailVerification from "models/email-verification.js";
 import { generateToken, hashToken } from "infra/crypto.js";
 import {
   appendSetCookie,
@@ -44,5 +48,31 @@ async function consume(res, pending) {
   appendSetCookie(res, serializeCookie(COOKIE, "", { maxAge: 0 }));
 }
 
-const googleSignup = { create, find, consume };
+/**
+ * Encontra a conta correspondente a um login Google já validado.
+ * - Já vinculada (google_sub): retorna.
+ * - Mesmo e-mail e e-mail confirmado: vincula (mesmo dono, ambos verificados).
+ * - Mesmo e-mail NÃO confirmado: pode ter sido cadastrado por um terceiro
+ *   ("sequestro prévio de conta"). O dono real, comprovado pelo Google, assume
+ *   a conta: a senha definida por quem a criou é descartada e todas as sessões
+ *   abertas são encerradas.
+ * - Sem conta: retorna null (segue para completar o cadastro).
+ */
+async function resolveExisting(req, profile) {
+  const linked = await user.findByGoogleSub(profile.sub);
+  if (linked) return linked;
+  const existing = await user.findForGoogleLink(profile.email);
+  if (!existing) return null;
+  if (existing.verificado) {
+    await user.linkGoogle(existing.id, profile.sub);
+  } else {
+    await user.reclaimUnverified(existing.id, profile.sub);
+    await session.destroyAllForUser(existing.id);
+    await emailVerification.discard(existing.id);
+    await audit(req, existing.id, "conta_recuperada_google");
+  }
+  return user.findById(existing.id);
+}
+
+const googleSignup = { create, find, consume, resolveExisting };
 export default googleSignup;

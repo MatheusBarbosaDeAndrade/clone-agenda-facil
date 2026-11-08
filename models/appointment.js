@@ -64,7 +64,8 @@ async function book(clienteId, { prestadorId, data, hora }) {
     await tx.query("SELECT pg_advisory_xact_lock(hashtext($1))", [prestadorId]);
 
     const providerResult = await tx.query(
-      "SELECT especialidade FROM prestadores WHERE usuario_id = $1",
+      `SELECT p.especialidade FROM prestadores p JOIN usuarios u ON u.id = p.usuario_id
+       WHERE p.usuario_id = $1 AND u.email_verificado_em IS NOT NULL`,
       [prestadorId],
     );
     if (!providerResult.rows[0])

@@ -11,9 +11,10 @@ import user from "models/user.js";
 import provider from "models/provider.js";
 import privacy from "models/privacy.js";
 import session from "models/session.js";
+import emailVerification from "models/email-verification.js";
 
 async function getMe(req, res) {
-  const { user: me } = await requireUser(req);
+  const { user: me } = await requireUser(req, null, { allowUnverified: true });
   res.status(200).json(me);
 }
 
@@ -28,12 +29,14 @@ async function updateMe(req, res) {
   }
   const updated = await user.updateProfile(me.id, data);
   await audit(req, me.id, "perfil_atualizado");
+  // Novo e-mail precisa ser confirmado antes de voltar a usar a conta.
+  if (!updated.emailVerificado) await emailVerification.send(me.id);
   res.status(200).json(updated);
 }
 
 /** LGPD art. 18, VI — eliminação dos dados pessoais. */
 async function deleteMe(req, res) {
-  const { user: me } = await requireUser(req);
+  const { user: me } = await requireUser(req, null, { allowUnverified: true });
   const { senha } = deleteAccountSchema.parse(req.body || {});
   if (me.temSenha) {
     const valid = await verifyPassword(

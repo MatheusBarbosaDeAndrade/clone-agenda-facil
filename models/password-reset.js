@@ -60,6 +60,8 @@ async function consume(token, novaSenha) {
     [hashToken(token)],
   );
   await user.updatePassword(usuarioId, novaSenha);
+  // Quem recebeu o link no e-mail comprovou ser o dono dele.
+  await user.markEmailVerified(usuarioId);
   // Encerra todas as sessões abertas: quem tinha acesso indevido é desconectado.
   await session.destroyAllForUser(usuarioId);
   return usuarioId;

@@ -4,6 +4,7 @@
   "description": "AgendaFácil — plataforma de agendamentos entre clientes e prestadores de serviços. Programado por Matheus Barbosa.",
   "main": "index.js",
   "scripts": {
+    "predev": "node infra/scripts/check-node.cjs",
     "dev": "npm run services:up && npm run services:wait && npm run migrations:up && next dev",
     "dev:seed": "node --env-file=.env.development infra/scripts/seed.mjs",
     "build": "next build --webpack",
@@ -21,6 +22,7 @@
     "secrets:generate": "node infra/scripts/generate-secrets.mjs",
     "lint:check": "prettier --check .",
     "lint:fix": "prettier --write .",
+    "pretest": "node infra/scripts/check-node.cjs",
     "test": "npm run services:up && npm run services:wait && npm run migrations:up && jest --runInBand",
     "test:watch": "jest --watchAll --runInBand"
   },

@@ -79,7 +79,7 @@ export async function request(
 }
 
 let counter = 0;
-export async function createUser(overrides = {}) {
+export async function createUser({ verified = true, ...overrides } = {}) {
   counter += 1;
   const papel = overrides.papel || "cliente";
   const body = {
@@ -101,5 +101,12 @@ export async function createUser(overrides = {}) {
   });
   if (result.status !== 201) throw new Error(JSON.stringify(result.data));
   const me = await request("/api/v1/users/me", { cookie: result.cookie });
+  // Simula o clique no link de confirmação (o fluxo real é testado em email-verification.test.js).
+  if (verified) {
+    await query(
+      "UPDATE usuarios SET email_verificado_em = now() WHERE id = $1",
+      [me.data.id],
+    );
+  }
   return { ...body, id: me.data.id, cookie: result.cookie };
 }

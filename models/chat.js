@@ -73,7 +73,8 @@ async function start(viewer, otherId) {
     clienteId = viewer.id;
     prestadorId = otherId;
     const exists = await database.query(
-      "SELECT 1 FROM prestadores WHERE usuario_id = $1",
+      `SELECT 1 FROM prestadores p JOIN usuarios u ON u.id = p.usuario_id
+       WHERE p.usuario_id = $1 AND u.email_verificado_em IS NOT NULL`,
       [otherId],
     );
     if (!exists.rows[0])

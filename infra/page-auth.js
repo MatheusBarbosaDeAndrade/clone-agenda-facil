@@ -30,6 +30,11 @@ export function withPageAuth(papel, loader) {
         },
       };
     }
+    if (!found.emailVerificado) {
+      return {
+        redirect: { destination: "/confirmar-email", permanent: false },
+      };
+    }
     if (papel && found.papel !== papel) {
       return {
         redirect: { destination: homePathFor(found.papel), permanent: false },

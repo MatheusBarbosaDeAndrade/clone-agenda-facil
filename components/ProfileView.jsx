@@ -119,7 +119,13 @@ export default function ProfileView({ user: initialUser, consents }) {
           duracaoMinutos: Number(form.duracaoMinutos),
         };
       }
-      setUser(await api("/api/v1/users/me", { method: "PATCH", body }));
+      const updated = await api("/api/v1/users/me", { method: "PATCH", body });
+      if (!updated.emailVerificado) {
+        // E-mail alterado: precisa confirmar o novo endereço.
+        window.location.href = "/confirmar-email";
+        return;
+      }
+      setUser(updated);
       notify("Perfil atualizado com sucesso.");
     } catch (error) {
       setErrors(error.fields);
@@ -264,6 +270,7 @@ export default function ProfileView({ user: initialUser, consents }) {
             <TextField
               label="E-mail"
               type="email"
+              hint="Ao alterar, enviaremos um link de confirmação."
               value={form.email}
               onChange={set("email")}
               error={errors.email}

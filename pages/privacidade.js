@@ -156,7 +156,14 @@ export default function Privacidade({ info }) {
           Dados da conta, agendamentos e mensagens: enquanto a conta existir.
         </li>
         <li>Sessões: até 12 horas, ou 30 dias se você marcar “Lembrar-me”.</li>
-        <li>Links de recuperação de senha: 30 minutos.</li>
+        <li>
+          Links de recuperação de senha: 30 minutos. Links de confirmação de
+          e-mail: 24 horas.
+        </li>
+        <li>
+          Contas cujo e-mail não for confirmado: excluídas automaticamente após
+          7 dias.
+        </li>
         <li>
           Registros de acesso (IP e data/hora): 6 meses, conforme o Marco Civil
           da Internet, sendo eliminados automaticamente após esse prazo.

@@ -38,7 +38,8 @@ async function search({ termo = "", limit = 30 } = {}) {
   const q = String(termo).trim().slice(0, 100);
   const result = await database.query(
     `${PROVIDER_SELECT}
-     WHERE ($1 = '' OR u.nome ILIKE $2 OR p.especialidade ILIKE $2 OR p.bio ILIKE $2 OR p.local ILIKE $2)
+     WHERE u.email_verificado_em IS NOT NULL
+       AND ($1 = '' OR u.nome ILIKE $2 OR p.especialidade ILIKE $2 OR p.bio ILIKE $2 OR p.local ILIKE $2)
      ORDER BY tem_agenda DESC, media_avaliacao DESC NULLS LAST, u.criado_em DESC
      LIMIT $3`,
     [q, `%${escapeLike(q)}%`, limit],
@@ -47,9 +48,10 @@ async function search({ termo = "", limit = 30 } = {}) {
 }
 
 async function findById(id) {
-  const result = await database.query(`${PROVIDER_SELECT} WHERE u.id = $1`, [
-    id,
-  ]);
+  const result = await database.query(
+    `${PROVIDER_SELECT} WHERE u.id = $1 AND u.email_verificado_em IS NOT NULL`,
+    [id],
+  );
   if (!result.rows[0])
     throw new NotFoundError({ message: "Prestador não encontrado." });
   return toPublic(result.rows[0]);

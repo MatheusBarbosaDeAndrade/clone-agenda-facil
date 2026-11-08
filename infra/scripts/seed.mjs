@@ -33,6 +33,16 @@ async function call(path, { method = "GET", body, cookie } = {}) {
 }
 
 async function account(user) {
+  const cookie = await registerOrLogin(user);
+  // Contas de demonstração já nascem com o e-mail confirmado.
+  await db.query(
+    "UPDATE usuarios SET email_verificado_em = COALESCE(email_verificado_em, now()) WHERE lower(email) = lower($1)",
+    [user.email],
+  );
+  return cookie;
+}
+
+async function registerOrLogin(user) {
   try {
     return (
       await call("/api/v1/auth/register", {
