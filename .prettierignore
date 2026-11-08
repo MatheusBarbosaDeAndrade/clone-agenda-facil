@@ -1,1 +1,4 @@
 .next
+node_modules
+referencia_imagens
+package-lock.json

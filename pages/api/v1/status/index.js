@@ -1,11 +1,19 @@
 import database from "infra/database.js";
+import { createHandler } from "infra/controller.js";
 
-async function status(request, response) {
-  const result = await database.query("SELECT 1+1 as sum;");
-  console.log(result.rows);
-  response.status(200).json({
-    status: "200",
+async function getStatus(req, res) {
+  const updatedAt = new Date().toISOString();
+  let databaseStatus = "healthy";
+  try {
+    await database.query("SELECT 1");
+  } catch {
+    databaseStatus = "unavailable";
+  }
+  res.status(databaseStatus === "healthy" ? 200 : 503).json({
+    status: databaseStatus === "healthy" ? "ok" : "degraded",
+    updated_at: updatedAt,
+    dependencies: { database: { status: databaseStatus } },
   });
 }
 
-export default status;
+export default createHandler({ GET: getStatus });

@@ -1,0 +1,14 @@
+# Caddy obtém e renova automaticamente o certificado HTTPS (Let's Encrypt).
+{
+	email {$ACME_EMAIL}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	header -Server
+	reverse_proxy app:3000
+}

@@ -1,2 +1,14 @@
 node_modules
 .next
+out
+coverage
+*.log
+
+# Segredos: nunca versionar arquivos de ambiente de produção
+.env
+.env.local
+.env.*.local
+.env.production
+.env.production.*
+!.env.production.example
+backups

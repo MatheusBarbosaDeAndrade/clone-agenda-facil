@@ -1,17 +1,28 @@
 {
   "name": "clone-agenda-facil",
   "version": "1.0.0",
-  "description": "agenda fácil programado inteiramente por Matheus Barbosa",
+  "description": "AgendaFácil — plataforma de agendamentos entre clientes e prestadores de serviços. Programado por Matheus Barbosa.",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run services:up && next dev",
+    "dev": "npm run services:up && npm run services:wait && npm run migrations:up && next dev",
+    "dev:seed": "node --env-file=.env.development infra/scripts/seed.mjs",
+    "build": "next build --webpack",
+    "start": "next start",
+    "start:production": "node infra/scripts/migrate.mjs up && next start",
+    "vercel-build": "node infra/scripts/migrate.mjs up && next build --webpack",
     "services:up": "docker compose -p agendafacil -f infra/compose.yaml up -d",
     "services:stop": "docker compose -p agendafacil -f infra/compose.yaml stop",
     "services:down": "docker compose -p agendafacil -f infra/compose.yaml down",
+    "services:wait": "node --env-file=.env.development infra/scripts/wait-for-postgres.mjs",
+    "migrations:create": "node-pg-migrate -m infra/migrations -j js create",
+    "migrations:up": "node --env-file=.env.development infra/scripts/migrate.mjs up",
+    "migrations:down": "node --env-file=.env.development infra/scripts/migrate.mjs down",
+    "maintenance": "node infra/scripts/maintenance.mjs",
+    "secrets:generate": "node infra/scripts/generate-secrets.mjs",
     "lint:check": "prettier --check .",
     "lint:fix": "prettier --write .",
-    "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test": "npm run services:up && npm run services:wait && npm run migrations:up && jest --runInBand",
+    "test:watch": "jest --watchAll --runInBand"
   },
   "repository": {
     "type": "git",
@@ -24,13 +35,25 @@
   },
   "homepage": "https://github.com/MatheusBarbosaDeAndrade/clone-agenda-facil#readme",
   "dependencies": {
-    "next": "^16.4.3",
+    "lucide-react": "^1.70.0",
+    "next": "^16.4.5",
+    "node-pg-migrate": "^9.0.0",
+    "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "jest": "^30.5.2",
     "prettier": "^3.9.10"
+  },
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "overrides": {
+    "glob": "^14.0.4",
+    "minimatch": "^11.0.5"
   }
 }

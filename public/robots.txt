@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /cadastro
+Allow: /privacidade
+Allow: /termos
+Disallow: /cliente/
+Disallow: /prestador/
+Disallow: /api/

@@ -1,0 +1,96 @@
+# Implantação em servidor próprio (VPS) com Docker.
+# Uso (na raiz do projeto):
+#   docker compose -f infra/compose.production.yaml --env-file .env.production up -d --build
+name: agendafacil-producao
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  database:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [internal]
+    # Sem "ports": o banco NÃO fica exposto à internet.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env.production
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_PORT: "5432"
+      POSTGRES_SSL: disable # tráfego só na rede interna do Docker
+      TRUST_PROXY: "true" # atrás do Caddy
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [internal]
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    networks: [internal]
+    logging: *logging
+
+  # Backup diário do banco, mantendo os últimos 7 dias em ../backups.
+  # Telefones e mensagens permanecem criptografados dentro do backup.
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: database
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+    volumes:
+      - ../backups:/backups
+    entrypoint: >
+      sh -c 'while true; do
+        pg_dump -Fc -f /backups/agendafacil-$$(date +%Y%m%d-%H%M).dump &&
+        find /backups -name "*.dump" -mtime +7 -delete;
+        sleep 86400;
+      done'
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [internal]
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
